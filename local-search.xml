@@ -5,12 +5,26 @@
   
   <entry>
     <title>第一篇博客文章</title>
-    <link href="/2024/06/13/First-blog-post/"/>
-    <url>/2024/06/13/First-blog-post/</url>
+    <link href="/2024/06/13/Hello-World/"/>
+    <url>/2024/06/13/Hello-World/</url>
     
-    <content type="html"><![CDATA[<h3 id="Nice-抽空折腾出来了，开个blog写写东西"><a href="#Nice-抽空折腾出来了，开个blog写写东西" class="headerlink" title="Nice 抽空折腾出来了，开个blog写写东西"></a>Nice 抽空折腾出来了，开个blog写写东西</h3>]]></content>
+    <content type="html"><![CDATA[<h3 id="Nice-抽空把博客折腾出来了🤩，开个-Blog-写写东西😋"><a href="#Nice-抽空把博客折腾出来了🤩，开个-Blog-写写东西😋" class="headerlink" title="Nice 抽空把博客折腾出来了🤩，开个 Blog 写写东西😋"></a>Nice 抽空把博客折腾出来了🤩，开个 Blog 写写东西😋</h3><p>这个可能会变成<del>垃圾堆</del>一样的博客终于在 2024-06-13 这天搓起来了。</p><p>以后或许会在这里写写折腾的随笔，学习记录，等等乱七八糟的玩意，作为一个CS专业的学生我觉得用 Blog 记录一些日常是挺不错的。</p><p>博客使用 Hexo 搭建，我觉得静态博客非常适合我这种<del>容易折腾炸</del>服务器的人</p><p>扔在 GitHub Pages 上，完全不用担心服务器稳不稳，<del>因此 GitHub 或者 Cloudflare 炸了我的 Blog 也就炸了</del></p><p>嗯，暂且先这样，等会继续研究一下 Hexo 和 Fluid Theme 怎么用。</p>]]></content>
     
     
+    <categories>
+      
+      <category>博客</category>
+      
+    </categories>
+    
+    
+    <tags>
+      
+      <tag>折腾</tag>
+      
+      <tag>博客</tag>
+      
+    </tags>
     
   </entry>
   
