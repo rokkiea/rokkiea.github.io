@@ -1,0 +1,760 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.png">
+  <link rel="icon" href="/img/favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Rokkiea">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="前段时间国内的 Docker Hub 加速缓存站在短时间内全部下线，为了仍然能在网络受限的环境下正常使用 Docker 的各项功能，我们需要修改 Docker 的部分配置文件，或使用来自「霍格沃茨」的能力闪现至长城之外......">
+<meta property="og:type" content="article">
+<meta property="og:title" content="解决 Docker 在国内无法顺畅使用的问题">
+<meta property="og:url" content="https://blog.rokkiea.dev/2024/06/13/Solve-Docker-s-access-barriers/index.html">
+<meta property="og:site_name" content="Rokkiea 的小世界">
+<meta property="og:description" content="前段时间国内的 Docker Hub 加速缓存站在短时间内全部下线，为了仍然能在网络受限的环境下正常使用 Docker 的各项功能，我们需要修改 Docker 的部分配置文件，或使用来自「霍格沃茨」的能力闪现至长城之外......">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.rokkiea.dev/index_img/2024-06-13-Solve-Docker-s-access-barriers.png">
+<meta property="article:published_time" content="2024-06-13T15:17:13.000Z">
+<meta property="article:modified_time" content="2024-06-14T03:38:02.841Z">
+<meta property="article:author" content="Rokkiea">
+<meta property="article:tag" content="Docker">
+<meta property="article:tag" content="容器">
+<meta property="article:tag" content="运维">
+<meta property="article:tag" content="云梯">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://blog.rokkiea.dev/index_img/2024-06-13-Solve-Docker-s-access-barriers.png">
+  
+  
+  
+  <title>解决 Docker 在国内无法顺畅使用的问题 - Rokkiea 的小世界</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"blog.rokkiea.dev","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Rokkiea 的小世界</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/img/default.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="解决 Docker 在国内无法顺畅使用的问题"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-06-13 23:17" pubdate>
+          2024年6月13日, 23:17
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          1.4k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          12 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">解决 Docker 在国内无法顺畅使用的问题</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>前段时间国内的 Docker Hub 加速缓存站在短时间内全部下线，为了仍然能在网络受限的环境下正常使用 Docker 的各项功能，我们需要修改 Docker 的部分配置文件，或使用来自「霍格沃茨」的能力闪现至长城之外……</p>
+</blockquote>
+<blockquote>
+<p>本篇博文的首页封面图由 OpenAI DALL·E 生成。</p>
+</blockquote>
+<h2 id="怎么回事？"><a href="#怎么回事？" class="headerlink" title="怎么回事？"></a>怎么回事？</h2><p>让我们来回顾一下事件的全过程：</p>
+<p>在2024年6月6日，上海交通大学 Linux 用户组 (SJTUG) 在其网站上发布了一条公告，通知使用了 SJTUG Docker Hub mirror 的用户迁移其服务。 <a target="_blank" rel="noopener" href="https://sjtug.org/post/mirror-news/2024-06-06-takedown-dockerhub/">原始链接</a></p>
+<center><img src="/2024/06/13/Solve-Docker-s-access-barriers/2024-06-06-SJTUG-Announce.png" srcset="/img/loading.gif" lazyload class="" title="2024-06-06-上交大镜像站发布公告下架 Docker Hub 镜像站">
+
+<p>2024-06-06-上交大镜像站发布公告下架 Docker Hub 镜像站</center></p>
+<p>同一天，中国科学技术大学开源软件镜像站也发出了同样的公告。 <a target="_blank" rel="noopener" href="https://mirrors.ustc.edu.cn/help/dockerhub.html#_3">原始链接</a></p>
+<center><img src="/2024/06/13/Solve-Docker-s-access-barriers/2024-06-06-USTC-Mirror-Announce.png" srcset="/img/loading.gif" lazyload class="" title="2024-06-06-中科大镜像站发布公告关闭 Docker Hub 镜像缓存服务, GCR 与 Quay 不受影响">
+
+<p>2024-06-06-中科大镜像站发布公告关闭 Docker Hub 镜像缓存服务, GCR 与 Quay 不受影响</center></p>
+<p>又过了一天，南京大学镜像站的 Docker Hub 缓存也下线。 <a target="_blank" rel="noopener" href="https://doc.nju.edu.cn/books/35f4a">原始链接</a></p>
+<center><img src="/2024/06/13/Solve-Docker-s-access-barriers/2024-06-07-NJU-Mirror-Alive.png" srcset="/img/loading.gif" lazyload class="" title="2024-06-07-南大镜像站 Docker Hub 缓存正常运行">
+
+<p>2024-06-07-南大镜像站 Docker Hub 缓存正常运行</center></p>
+<center><img src="/2024/06/13/Solve-Docker-s-access-barriers/2024-06-07-NJU-Mirror-Take-down.png" srcset="/img/loading.gif" lazyload class="" title="2024-06-07-南大镜像站 Docker Hub 缓存消失">
+
+<p>2024-06-07-南大镜像站 Docker Hub 缓存消失</center></p>
+<p>原百度 BCE 镜像也停止解析，至此，大陆地区所有可公开访问的 Docker Hub 镜像站均已下线。<br>经过在本地和 <code>itdog.cn</code> 上的测试，Docker 主站点和 Docker Hub 在国内均是无法直接访问的（DNS污染和SNI阻断）。</p>
+<p>当然，即使镜像站消失了，Docker 全站也无法直连，<strong>但这不代表任务进行不下去，研究就可以不做了</strong>。</p>
+<h2 id="那具体该怎么办呢？"><a href="#那具体该怎么办呢？" class="headerlink" title="那具体该怎么办呢？"></a>那具体该怎么办呢？</h2><p>解决方案有两种：</p>
+<ul>
+<li>为 Docker 配置<strong>海外缓存站</strong></li>
+<li>给 Docker 使用云梯</li>
+<li>自己建一个 Docker Hub 缓存站</li>
+</ul>
+<p>以下将对以上三种方法逐一介绍，难度按顺序由浅入深。</p>
+<h3 id="为-Docker-配置海外缓存站"><a href="#为-Docker-配置海外缓存站" class="headerlink" title="为 Docker 配置海外缓存站"></a>为 Docker 配置海外缓存站</h3><p>这是最简单的一种办法，只需要少量修改就能用了</p>
+<ol>
+<li><p>根据<a target="_blank" rel="noopener" href="https://docs.docker.com/config/daemon/#configuration-file">Docker 守护进程配置概述 - 配置文件</a>的表格，请依据自己的实际使用环境，编辑以下配置文件。</p>
+<p> <em>文档中的表格内容翻译如下</em></p>
+<table>
+<thead>
+<tr>
+<th>操作系统和配置</th>
+<th>文件位置</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>Linux, regular setup (传统安装，Linux一般是这种)</td>
+<td><code>/etc/docker/daemon.json</code></td>
+</tr>
+<tr>
+<td>Linux, rootless mode (非特权模式)</td>
+<td><code>~/.config/docker/daemon.json</code></td>
+</tr>
+<tr>
+<td>Windows</td>
+<td><code>C:\ProgramData\docker\config\daemon.json</code></td>
+</tr>
+</tbody></table>
+<p> 此处以 <strong>Linux 传统安装</strong> 为例。</p>
+<p> 用你喜欢的文本编辑器打开 <code>/etc/docker/daemon.json</code> ，文件不存在就新建文件，并将以下文本加入其中：</p>
+ <figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs JSON"><span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;registry-mirrors&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><br>        <span class="hljs-string">&quot;https://docker.m.daocloud.io&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-string">&quot;https://huecker.io&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-string">&quot;https://dockerhub.timeweb.cloud&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-string">&quot;https://noohub.ru&quot;</span><br>    <span class="hljs-punctuation">]</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+<p> 你也可以将你找到的缓存站加入以上列表。</p>
+<p> 重启 docker engine：</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs SHELL">sudo systemctl daemon-reload<br>sudo systemctl restart docker<br></code></pre></td></tr></table></figure>
+
+<p> 然后就可以正常拉取和推送镜像啦。😆</p>
+</li>
+</ol>
+<h3 id="给-Docker-使用云梯"><a href="#给-Docker-使用云梯" class="headerlink" title="给 Docker 使用云梯"></a>给 Docker 使用云梯</h3><p><del><em>都会用 <code>Docker</code> 了该不会还没有云梯吧？不会吧不会吧…</em></del></p>
+<p>Docker Engine 23.0 或以上版本可以经过以下几个步骤为 Docker 配置代理服务器：</p>
+<ol>
+<li><p>首先，检查 Docker Engine 版本。</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs SHELL">sudo docker version<br></code></pre></td></tr></table></figure>
+<p> 例如，我的 Docker Engine Server 版本为 24.0.7 </p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><code class="hljs SHELL">...<br>Server: Docker Engine - Community<br>Engine:<br>Version:          24.0.7<br>API version:      1.43 (minimum version 1.12)<br>Go version:       go1.20.10<br>Git commit:       311b9ff<br>Built:            Thu Oct 26 09:08:02 2023<br>OS/Arch:          linux/amd64<br>Experimental:     false<br>...<br></code></pre></td></tr></table></figure>
+<p> 由此可见，我的 Docker Engine 版本符合要求。</p>
+</li>
+<li><p>根据上一节的内容，用你喜欢的文本编辑器打开 Docker 守护进程的配置文件，文件不存在就新建文件，并将以下文本加入其中：</p>
+ <figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs JSON"><span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;proxies&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>        <span class="hljs-attr">&quot;http-proxy&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://&lt;你的代理服务器地址&gt;:&lt;代理服务器端口&gt;&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;https-proxy&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://&lt;你的代理服务器地址&gt;:&lt;代理服务器端口&gt;&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;no-proxy&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,fd00::/8&quot;</span><br>    <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+<p> 这里配置了<code>no-proxy</code>用以忽略一些专用网络地址、链路本地地址和 localhost ，你可以根据自己的需求修改。</p>
+<p> 其中 <code>http-proxy</code> 和 <code>http-proxy</code> 中填写的就是你对代理服务器地址，假设你使用的是 Clash 或类似软件，那么你应该填写为 <code>127.0.0.1:7890</code> ，具体的端口号不同的云梯程序会有所不同，你应该按照自己的实际情况修改。</p>
+<p> 我的配置：</p>
+ <figure class="highlight json"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><code class="hljs JSON"><span class="hljs-punctuation">&#123;</span><br>    <span class="hljs-attr">&quot;proxies&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">&#123;</span><br>        <span class="hljs-attr">&quot;http-proxy&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://127.0.0.1:7890&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;https-proxy&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;http://127.0.0.1:7890&quot;</span><span class="hljs-punctuation">,</span><br>        <span class="hljs-attr">&quot;no-proxy&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;localhost,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,fd00::/8&quot;</span><br>    <span class="hljs-punctuation">&#125;</span><br><span class="hljs-punctuation">&#125;</span><br></code></pre></td></tr></table></figure>
+<p> 保存文件并重启 Docker daemon：</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs SHELL">sudo systemctl restart docker.service<br></code></pre></td></tr></table></figure>
+
+<p> 有人说，我的 Docker Engine 版本低于 23.0 怎么办😰，难道我要被抛弃了吗？😭<br> 当然不会，现今大部分用户使用的 Linux 发行版均将 systemd 作为默认的守护进程管理程序，因此按照 Docker 的官方文档<a target="_blank" rel="noopener" href="https://docs.docker.com/config/daemon/systemd/">使用 systemd 配置守护进程</a>，我们还可以通过修改 systemd 服务文件的环境变量配置来配置代理的功能。</p>
+<p> 首先，为 docker 服务创建一个 systemd 插入目录：</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs SHELL">sudo mkdir -p /etc/systemd/system/docker.service.d<br></code></pre></td></tr></table></figure>
+<p> 创建一个名为 <code>/etc/systemd/system/docker.service.d/http-proxy.conf</code> 的文件，添加 <code>HTTP_PROXY</code> 环境变量：</p>
+ <figure class="highlight properties"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><code class="hljs properties"><span class="hljs-attr">[Service]</span><br><span class="hljs-attr">Environment</span>=<span class="hljs-string">&quot;HTTP_PROXY=http://&lt;你的代理服务器地址&gt;:&lt;代理服务器端口&gt;&quot;</span><br><span class="hljs-attr">Environment</span>=<span class="hljs-string">&quot;HTTPS_PROXY=https://&lt;你的代理服务器地址&gt;:&lt;代理服务器端口&gt;&quot;</span><br><span class="hljs-attr">Environment</span>=<span class="hljs-string">&quot;NO_PROXY=localhost,127.0.0.0/8,10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,100.64.0.0/10,fd00::/8&quot;</span><br></code></pre></td></tr></table></figure>
+<p> 然后刷新 systemd daemon 并重启 Docker Engine：</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs SHELL">sudo systemctl daemon-reload<br>sudo systemctl restart docker<br></code></pre></td></tr></table></figure>
+</li>
+<li><p>随便拉一个镜像试试：</p>
+ <figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br></pre></td><td class="code"><pre><code class="hljs SHELL"><span class="hljs-meta prompt_">$ </span><span class="language-bash">sudo docker pull mysql:8.0.37-bookworm</span><br>8.0.37-bookworm: Pulling from library/mysql<br>2cc3ae149d28: Pull complete<br>22d5d3c999e7: Pull complete<br>028261070555: Pull complete<br>90facb54927d: Pull complete<br>8ac805783dbd: Pull complete<br>f83473c07644: Pull complete<br>c7cf26312880: Pull complete<br>d829cc689d14: Pull complete<br>cb4001b741c1: Extracting  84.67MB/134.4MB<br>3662b243cb4a: Download complete<br>65a44116a5c5: Download complete<br>3b0138779dff: Download complete<br></code></pre></td></tr></table></figure>
+<p> 可以正常拉取了，挺好。😜</p>
+</li>
+</ol>
+<p><del><em>还没写完，先推送了，吃个饭再回来</em></del></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E8%BF%90%E7%BB%B4/" class="category-chain-item">运维</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/Docker/" class="print-no-link">#Docker</a>
+      
+        <a href="/tags/%E5%AE%B9%E5%99%A8/" class="print-no-link">#容器</a>
+      
+        <a href="/tags/%E8%BF%90%E7%BB%B4/" class="print-no-link">#运维</a>
+      
+        <a href="/tags/%E4%BA%91%E6%A2%AF/" class="print-no-link">#云梯</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>解决 Docker 在国内无法顺畅使用的问题</div>
+      <div>https://blog.rokkiea.dev/2024/06/13/Solve-Docker-s-access-barriers/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Rokkiea</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年6月13日</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>更新于</div>
+          <div>2024年6月14日</div>
+        </div>
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="SA - 相同方式共享">
+                    <i class="iconfont icon-sa"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/06/13/Hello-World/" title="第一篇博客文章">
+                        <span class="hidden-mobile">第一篇博客文章</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
