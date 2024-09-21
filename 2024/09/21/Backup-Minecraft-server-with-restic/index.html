@@ -1,0 +1,764 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/favicon.png">
+  <link rel="icon" href="/img/favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="Rokkiea">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="这已经是我数不清第几次开 Minecraft 私服了...这次准备使用更加完备的流程，尽可能地保障 Minecraft 服务器的数据安全">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用 restic 备份 Minecraft 服务器">
+<meta property="og:url" content="https://blog.rokkiea.dev/2024/09/21/Backup-Minecraft-server-with-restic/index.html">
+<meta property="og:site_name" content="Rokkiea 的小世界">
+<meta property="og:description" content="这已经是我数不清第几次开 Minecraft 私服了...这次准备使用更加完备的流程，尽可能地保障 Minecraft 服务器的数据安全">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://blog.rokkiea.dev/index_img/2024-09-21-Backup-Minecraft-server-with-restic.png">
+<meta property="article:published_time" content="2024-09-21T10:23:27.000Z">
+<meta property="article:modified_time" content="2024-09-21T10:29:08.272Z">
+<meta property="article:author" content="Rokkiea">
+<meta property="article:tag" content="折腾">
+<meta property="article:tag" content="运维">
+<meta property="article:tag" content="Minecraft">
+<meta property="article:tag" content="备份">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://blog.rokkiea.dev/index_img/2024-09-21-Backup-Minecraft-server-with-restic.png">
+  
+  
+  
+  <title>使用 restic 备份 Minecraft 服务器 - Rokkiea 的小世界</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"blog.rokkiea.dev","root":"/","version":"1.9.7","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":{"measurement_id":null},"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml","include_content_in_search":true};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 7.2.0"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>Rokkiea 的小世界</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/" target="_self">
+                <i class="iconfont icon-home-fill"></i>
+                <span>首页</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/" target="_self">
+                <i class="iconfont icon-archive-fill"></i>
+                <span>归档</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/" target="_self">
+                <i class="iconfont icon-category-fill"></i>
+                <span>分类</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/" target="_self">
+                <i class="iconfont icon-tags-fill"></i>
+                <span>标签</span>
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/" target="_self">
+                <i class="iconfont icon-user-fill"></i>
+                <span>关于</span>
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              <i class="iconfont icon-search"></i>
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">
+              <i class="iconfont icon-dark" id="color-toggle-icon"></i>
+            </a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/banner_img/2024-09-21-Backup-Minecraft-server-with-restic.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="使用 restic 备份 Minecraft 服务器"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2024-09-21 18:23" pubdate>
+          2024年9月21日, 18:23
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          25 分钟
+        
+      </span>
+    
+
+    
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <h1 id="seo-header">使用 restic 备份 Minecraft 服务器</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <blockquote>
+<p>这已经是我数不清第几次开 Minecraft 私服了…这次准备使用更加完备的流程，尽可能地保障 Minecraft 服务器的数据安全</p>
+</blockquote>
+<h2 id="事情的起因"><a href="#事情的起因" class="headerlink" title="事情的起因"></a>事情的起因</h2><p><del>作为一个拥有 Java，iOS，Google Play，Windows 四平台正版的用户，一年不玩几次是不可能的</del></p>
+<p>开过无数次 Minecraft 服务器了，依稀记得那第一次开私服是朋友在淘宝上买的，一个月30￥。那时候不懂什么配置什么插件什么存档备份乱七八糟的，只知道玩，并且<del>很高速移动</del>很卡。1.8 时代的我还是个毛小子啥也不懂。但是现在，趁着暑假买了个 OrangePi 5 Pro ，还给他做了个 3D 打印外壳，修改了几行 pwm-fan 的驱动使我买的 pwm 调速扇能正常工作。手里拿着一个 4 大核 + 4 小核的玩意怎么能不好好<del>压榨</del>利用一下呢，于是乎在这上面跑 Minecraft 服务器的念头便油然而生。</p>
+<center><img src="/2024/09/21/Backup-Minecraft-server-with-restic/2024-09-21-OPI5PRO.jpg" srcset="/img/loading.gif" lazyload class="" title="2024-09-21-我的 OrangePi 5 Pro">
+
+<p>2024-09-21-我的 OrangePi 5 Pro</center></p>
+<p>这个单板计算机上搭载了一块性能还凑活<del>且非常灵车的</del>😜 NVME 硬盘：三星 PM991A，这是个只有店保的 OEM 硬盘。</p>
+<p><del>65￥要什么自行车</del></p>
+<p>为了磁盘读写性能，我把 Minecraft 服务器放在了这块硬盘上，而不是数据安全性可靠但是性能低下的 emmc 上。</p>
+<h2 id="为乘坐-高-速-灵-车-的Minecraft服务器提供安全保障"><a href="#为乘坐-高-速-灵-车-的Minecraft服务器提供安全保障" class="headerlink" title="为乘坐 高 速 灵 车 的Minecraft服务器提供安全保障"></a>为乘坐 <del><em>高 速 灵 车</em></del> 的Minecraft服务器提供安全保障</h2><p>接下来要做的就是数据备份工作了，没有人都不想自己<del>当了那么长时间的帕鲁</del>撸了那么长时间的方块在一瞬间灰飞烟灭了吧。</p>
+<p>首先明确一下本<del>灵车</del>服务器的定位：</p>
+<ul>
+<li>原版生电&#x2F;建筑向服务器</li>
+<li>7*24 小时开放</li>
+<li>每一小时至少备份一次</li>
+<li>服务器开在家里，网络是普通的家庭宽带</li>
+</ul>
+<h3 id="选择备份工具"><a href="#选择备份工具" class="headerlink" title="选择备份工具"></a>选择备份工具</h3><h4 id="Git"><a href="#Git" class="headerlink" title="Git"></a>Git</h4><p>作为一个用 Hexo 写 blog 的家伙，首先想到的便是 Git。不过带着“Git是个源码版本控制软件，它适合备份二进制的 Minecraft 存档吗？”的疑问，去网上寻找答案。已知的是 Git 可以对二进制进行版本控制的，但是其似乎无法对二进制文件进行精细的差异比较，其检测到修改的处理方式就是将新版本直接复制一份到仓库中。</p>
+<p>这种备份的方式实在是太不优雅了，Minecraft 的存档是非常多的分散小文件，而且每当在世界中进行大量的建筑工程时，游戏对区块数据修改是极其频繁。即使我去野外砍了一棵树，撸掉一个泥土方块，那么存储那个区块的文件便会发生变化，Git 就要完整地复制好几个MB的文件到新仓库。作为一个定位为生电和建筑的服务器，制造横跨数个区块的机器是家常便饭。而且由于玩家的时间分配并不那么自由，一台机器花好几天时间造完，甚至造了一半搁置半个月再造一半都是很有可能的。</p>
+<p>可预见地，如果我是用 Git 对服务器进行备份，那么其体积膨胀速度会非常块。根据数据备份的 3-2-1 原则，我需要有两个存储介质和至少一份异地备份，<del>但是受限于财力不足无法严格遵守 3-2-1 原则，所以我还是只异地吧</del>。我需要在本地再准备一个足够大的空间，异地云端也要有一个足够大的空间，并且在向云端备份时会长期占用家中的互联网上行带宽。~~就那 40 Mbps 小水管怎么够啊。</p>
+<p>而且备份存档的目的是防止存档损坏丢失，版本追踪方便回档只是防止<del>机器忘记关导致崩服</del>，前者当然是更加重要的，对于后者，我也不需要保留如此多的版本，因为崩服很容易发现。</p>
+<p>那么会有人说，你让 Git 删除旧 commit 不就好了？ Git 删除旧 commit 的过程十分繁琐，让一个菜鸡编写那样复杂的自动化脚本还是太困难了。而且删除了旧 commit 其仓库体积也不一定会变小多少。</p>
+<p>Git 并不适用于我现在的场景，遂排除。</p>
+<h4 id="restic"><a href="#restic" class="headerlink" title="restic"></a>restic</h4><p>在排除了 Git 之后，我便开始寻找其他的备份工具，我需要的是一个轻量易用的备份工具，只需要他能够“滚动”地备份多个版本，会自动对文件进行比较，无论是二进制还是文本，都可以进行字节级差异备份，即——只添加变化的部分。</p>
+<p><strong><a target="_blank" rel="noopener" href="https://restic.net/">restic</a> 是个不错的选择</strong></p>
+<p>根据 restic 项目网站上的介绍，restic 支持许多不同的存储类型（甚至支持 rclone ），仅传输实际更改的部分，并且其备份仓库是加密的。</p>
+<p>看上去非常适合我的需求，就你了！</p>
+<h2 id="使用-restic-备份-Minecraft-服务器"><a href="#使用-restic-备份-Minecraft-服务器" class="headerlink" title="使用 restic 备份 Minecraft 服务器"></a>使用 restic 备份 Minecraft 服务器</h2><blockquote>
+<p>注意，接下来的所有命令和操作均为演示用途，你需要将命令中的路径和各类名称修改为你当前的情况</p>
+</blockquote>
+<h3 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h3><p>首先，需要在运行 Minecraft 服务端的系统上安装 restic，这一步很简单，官方文档的 <a target="_blank" rel="noopener" href="https://restic.readthedocs.io/en/stable/020_installation.html">Installation</a> 提供了非常细致的指南。</p>
+<p>在我部署 restic 时，其版本为 0.17.1 </p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs SHELL"><span class="hljs-meta prompt_">$ </span><span class="language-bash">restic version</span><br>restic 0.17.1 compiled with go1.23.1 on linux/arm64<br></code></pre></td></tr></table></figure>
+
+<h3 id="创建仓库"><a href="#创建仓库" class="headerlink" title="创建仓库"></a>创建仓库</h3><p>接下来，我先为 Minecraft 服务器新建一个本地仓库。以下命令是初始化仓库</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND"># 使用 restic -r &lt;仓库的路径&gt; init 创建仓库 <br>restic -r mc-backup-test/ init<br></code></pre></td></tr></table></figure>
+<p>我这里是在当前所在目录下的一个叫 <code>mc-backup-test</code> 的目录中创建仓库， restic 会将各种备份数据都存在这里。你可以建多个仓库，将他们各用作不同用途。</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs SHELL"><span class="hljs-meta prompt_">$ </span><span class="language-bash">restic -r mc-backup-test/ init</span><br>enter password for new repository:<br>enter password again:<br>created restic repository 3e1d6ea315 at mc-backup-test/<br><br>Please note that knowledge of your password is required to access<br>the repository. Losing your password means that your data is<br>irrecoverably lost.<br></code></pre></td></tr></table></figure>
+<p>restic 会提示你输入两次密码，一定要记住这个密码，否则后续别想对仓库进行任何操作（包括备份和恢复数据）。</p>
+<h3 id="备份数据"><a href="#备份数据" class="headerlink" title="备份数据"></a>备份数据</h3><p>仓库创建后，备份就非常简单了：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND"># 使用 restic -r mc-backup-test/ backup ../../rokkiea/ mc-server-2024-rsync-copy/ 进行备份<br># 你可以在命令结尾添加 -v 或 -vv 参数获得更详细的信息<br>restic -r mc-backup-test/ backup ../../rokkiea/mc-server-2024-rsync-copy/<br></code></pre></td></tr></table></figure>
+<p>restic 会显示当前备份的进度，文件数量，以及体积</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br></pre></td><td class="code"><pre><code class="hljs SHELL"><span class="hljs-meta prompt_">$ </span><span class="language-bash">restic -r mc-backup-test/ backup ../../rokkiea/mc-server-2024-rsync-copy/</span><br>enter password for repository:<br>repository 3e1d6ea3 opened (version 2, compression level auto)<br>no parent snapshot found, will read all files<br>[0:00]          0 index files loaded<br><br>Files:         401 new,     0 changed,     0 unmodified<br>Dirs:           50 new,     0 changed,     0 unmodified<br>Added to the repository: 595.985 MiB (372.387 MiB stored)<br><br>processed 401 files, 595.760 MiB in 0:03<br>snapshot 3c9c2f25 saved<br></code></pre></td></tr></table></figure>
+<p>提示 <code>snapshot 3c9c2f25 saved</code> ，这次备份就这样完成了</p>
+<h4 id="排除不必要的文件"><a href="#排除不必要的文件" class="headerlink" title="排除不必要的文件"></a>排除不必要的文件</h4><p>不过，我的服务器中安装了 <a target="_blank" rel="noopener" href="https://bluemap.bluecolored.de/">Bluemap</a> ，这是一个可以生成类似 Google Map 那样的卫星地图的插件，其渲染产生的文件非常巨大，而且更新极其频繁。反正 Bluemap 的渲染数据也是根据当前世界存档生成的，不备份也没关系，真崩了重新再渲染一份也无妨。</p>
+<p>所以我们就要用到 restic 强大的排除文件功能了。restic 的文件排除功能基于路径名所以，我们需要根据要排除的文件的路径来编写规则。<br>例如我想要排除掉路径包含为 bluemap&#x2F; 的文件，则可以新建一个文本文件，写入以下：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs TEXT">mc-server-2024/bluemap<br></code></pre></td></tr></table></figure>
+<p>当然，服务端目录中还有许多无用的文件，你可以自行添加，其语法类似 <code>gitignore</code> 的写法，更多例子请参考官方文档 <a target="_blank" rel="noopener" href="https://restic.readthedocs.io/en/stable/040_backup.html#excluding-files">Excluding Files</a> 。我的规则最终长这样：</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><code class="hljs TEXT">mc-server-2024/libraries<br>mc-server-2024/cache<br>mc-server-2024/bluemap<br></code></pre></td></tr></table></figure>
+
+<p>然后在备份时的命令后面加上参数 <code>--exclude-file=&quot;&lt;你的规则文件的路径&gt;&quot;</code> 即可。<br>现在命令变成了这样：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND"># 在命令后方加入参数 --exclude-file=&quot;&lt;你的规则文件的路径&gt;&quot; 来指定排除文件列表<br>restic -r mc-backup-test/ backup ../../rokkiea/mc-server-2024-rsync-copy/ --exclude-file=&quot;./exclude-file.txt&quot; -vv<br></code></pre></td></tr></table></figure>
+
+<p>仔细翻阅 restic 的输出日志，你会发现列表中列出来的文件和目录都没有被加入仓库。</p>
+<h3 id="定时备份"><a href="#定时备份" class="headerlink" title="定时备份"></a>定时备份</h3><p>当然作为一个备份程序，让他能在规定的时间自动工作是必不可少的。<del>你那么喜欢手动运行备份我也拦不住你</del></p>
+<p>restic 本身并未提供定时运行的方法，我们可以借助 <code>cron</code> 或 <code>systemd-timer</code> 等工具来定时运行备份<br>最简单的办法就是编写一个脚本，然后让以上两个工具定时帮你运行。</p>
+
+    <div class="fold">
+      <div class="fold-title fold-info collapsed" data-toggle="collapse" href="#collapse-5d5d193e" role="button" aria-expanded="false" aria-controls="collapse-5d5d193e">
+        <div class="fold-arrow">▶</div>[点击释放] 很简单的手搓脚本
+      </div>
+      <div class="fold-collapse collapse" id="collapse-5d5d193e">
+        <div class="fold-content">
+          <figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><code class="hljs BASH"><span class="hljs-comment"># 请将 /your/restic/repo/path 替换为你的 restic 仓库的路径</span><br><span class="hljs-built_in">export</span> RESTIC_REPOSITORY=/your/restic/repo/path<br><span class="hljs-comment"># 请将 yourpassword 替换为你的 restic 仓库密码</span><br><span class="hljs-built_in">export</span> RESTIC_PASSWORD=youpassword<br><span class="hljs-comment"># 请将 /your/mc/server/path 替换为你的 Minecraft 服务端所在路径</span><br><span class="hljs-built_in">export</span> MC_SERVER_PATH=/your/mc/server/path<br><span class="hljs-comment"># 请将 /your/restic/exclude/file/path 替换为你的 restic exclude-file 文件路径</span><br><span class="hljs-built_in">export</span> MC_BACKUP_RESTIC_EXCLUDE=/your/restic/exclude/file/path<br><br>restic backup <span class="hljs-string">&quot;<span class="hljs-variable">$MC_SERVER_PATH</span>&quot;</span> --exclude-file=<span class="hljs-string">&quot;<span class="hljs-variable">$MC_BACKUP_RESTIC_EXCLUDE</span>&quot;</span><br></code></pre></td></tr></table></figure>
+        </div>
+      </div>
+    </div>
+
+<p>没错，restic 支持从环境变量中读取 仓库路径，仓库密码等信息，具体可以设置哪些环境变量，请看官方文档 <a target="_blank" rel="noopener" href="https://restic.readthedocs.io/en/stable/040_backup.html#environment-variables">Environment Variables</a> 。</p>
+<h3 id="从备份中恢复"><a href="#从备份中恢复" class="headerlink" title="从备份中恢复"></a>从备份中恢复</h3><p>当然了， restic 怎么可能只管备份呢。当数据发生丢失或损坏时，当务之急就是从备份中恢复数据。</p>
+<p>首先查看仓库中的可用快照</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND">restic -r mc-backup-test/ snapshots<br></code></pre></td></tr></table></figure>
+<p>restic 会输出一个仓库中的所有快照的列表，包含了快照的 ID ，时间，主机，标签和备份的路径</p>
+<figure class="highlight shell"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs SHELL"><span class="hljs-meta prompt_">$ </span><span class="language-bash">restic -r mc-backup-test/ snapshots</span><br>enter password for repository:<br>repository 3e1d6ea3 opened (version 2, compression level auto)<br>ID        Time                 Host          Tags        Paths                                                      Size<br>-------------------------------------------------------------------------------------------------------------------------------<br>3c9c2f25  2024-09-21 14:59:04  orangepi5pro              /media/nvme0/user-space/rokkiea/mc-server-2024-rsync-copy  595.760 MiB<br>-------------------------------------------------------------------------------------------------------------------------------<br>1 snapshots<br></code></pre></td></tr></table></figure>
+<p>我们选择恢复快照 <code>3c9c2f25</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND">restic -r mc-backup-test/ restore 3c9c2f25 --target ../../rokkiea/test/<br></code></pre></td></tr></table></figure>
+<p>接下来你就可以去你指定的 <code>target</code> 目录中享用你的备份了。<br>restore 命令的更多使用方法也可以去官方文档 <a target="_blank" rel="noopener" href="https://restic.readthedocs.io/en/stable/050_restore.html">Restoring from backup</a> 查看。</p>
+<h3 id="删除旧的快照"><a href="#删除旧的快照" class="headerlink" title="删除旧的快照"></a>删除旧的快照</h3><p>restic 的 backup 命令只会向仓库中加入新的数据，而不会删除旧的数据。备份也是有期限的，过旧的快照应该被删除。<br>要在 restic 中删除一份快照一共需要两步。<br>例如我现在要删除快照 <code>3c9c2f25</code></p>
+<ol>
+<li><code>forget</code></li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND">restic -r mc-backup-test/ forget 3c9c2f25<br></code></pre></td></tr></table></figure>
+<ol start="2">
+<li><code>prune</code></li>
+</ol>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND">restic -r mc-backup-test/ prune<br></code></pre></td></tr></table></figure>
+
+<p>当然以上两步可以合为一步</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND">restic -r mc-backup-test/ forget 3c9c2f25 --prune<br></code></pre></td></tr></table></figure>
+
+<p>不过手动删除也太麻烦了， restic 提供了一些内置的删除策略，我们可以直接用。<br>例如，我想只保留最近2160个版本，那么我就可以加上参数 <code>--keep-last 2160</code></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><code class="hljs COMMAND"># 使用 --keep-last 来自动删除过旧的快照<br>restic -r mc-backup-test/ forget --keep-last 2160 --prune<br></code></pre></td></tr></table></figure>
+<p>还有很多其他的删除策略可用使用，以下不一一列举额，详情请看官方文档 <a target="_blank" rel="noopener" href="https://restic.readthedocs.io/en/stable/060_forget.html#removing-snapshots-according-to-a-policy">Removing snapshots according to a policy</a> 。</p>
+<h3 id="restic-远程备份"><a href="#restic-远程备份" class="headerlink" title="restic 远程备份"></a>restic 远程备份</h3><p>这里只讲了本地备份，根据上文提到的，我们还需要有一个远程备份。</p>
+<p>restic 的文档中提到，它支持 REST Server 作为存储介质。</p>
+<p>先挑选一个远程服务器，安装好 REST Server ，由于 REST Server 的安装不是本文的重点，故掠过。</p>
+<p>我的方式是：在 REST Server 机器上和香橙派之间起一条 Wireguard-over-VLESS 隧道，因为隧道是加密的，我就无需为 REST Server 配置 SSL 证书了哈哈哈。<del>这个 Minecraft 服务器真是处处充满灵车的味道啊（</del></p>
+<p>由于 restic 在使用 REST Server 作为存储截至时只有仓库名字不同，其他几乎完全一致，故不再详细介绍远程备份的使用。示例可以参考官方文档 <a target="_blank" rel="noopener" href="https://restic.readthedocs.io/en/stable/030_preparing_a_new_repo.html#rest-server">REST Server</a> 。</p>
+<p>PS: 在本文撰写结束时，我的 restic 备份已经稳定运行一周，产生了 170+ 个快照了。 restic 真香</p>
+<figure class="highlight text"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><code class="hljs TEXT">Stats in raw-data mode:<br>     Snapshots processed:  172<br>        Total Blob Count:  14888<br> Total Uncompressed Size:  4.419 GiB<br>              Total Size:  1.883 GiB<br>    Compression Progress:  100.00%<br>       Compression Ratio:  2.35x<br>Compression Space Saving:  57.39%<br></code></pre></td></tr></table></figure>
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+    <div class="post-meta mr-3 d-flex align-items-center">
+      <i class="iconfont icon-category"></i>
+      
+
+<span class="category-chains">
+  
+  
+    
+      <span class="category-chain">
+        
+  <a href="/categories/%E8%BF%90%E7%BB%B4/" class="category-chain-item">运维</a>
+  
+  
+
+      </span>
+    
+  
+</span>
+
+    </div>
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/%E6%8A%98%E8%85%BE/" class="print-no-link">#折腾</a>
+      
+        <a href="/tags/%E8%BF%90%E7%BB%B4/" class="print-no-link">#运维</a>
+      
+        <a href="/tags/Minecraft/" class="print-no-link">#Minecraft</a>
+      
+        <a href="/tags/%E5%A4%87%E4%BB%BD/" class="print-no-link">#备份</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>使用 restic 备份 Minecraft 服务器</div>
+      <div>https://blog.rokkiea.dev/2024/09/21/Backup-Minecraft-server-with-restic/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>Rokkiea</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2024年9月21日</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>更新于</div>
+          <div>2024年9月21日</div>
+        </div>
+      
+      
+        <div class="license-meta-item">
+          <div>许可协议</div>
+          <div>
+            
+              
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                    <i class="iconfont icon-by"></i>
+                  </span>
+                </a>
+              
+                <a class="print-no-link" target="_blank" href="https://creativecommons.org/licenses/by-sa/4.0/">
+                  <span class="hint--top hint--rounded" aria-label="SA - 相同方式共享">
+                    <i class="iconfont icon-sa"></i>
+                  </span>
+                </a>
+              
+            
+          </div>
+        </div>
+      
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2024/06/13/Solve-Docker-s-access-barriers/" title="解决 Docker 在国内无法顺畅使用的问题">
+                        <span class="hidden-mobile">解决 Docker 在国内无法顺畅使用的问题</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header">
+    <i class="iconfont icon-list"></i>
+    <span>目录</span>
+  </p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.4/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.20.1/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init(Object.assign({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      scrollSmooth    : true,
+      includeTitleTags: true,
+      headingsOffset  : -boardTop,
+    }, CONFIG.toc));
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('tocbot' in window) {
+        tocbot.refresh();
+        var toc = jQuery('#toc');
+        if (toc.length === 0 || !tocbot) {
+          return;
+        }
+        if (toc.find('.toc-list-item').length > 0) {
+          toc.css('visibility', 'visible');
+        }
+      }
+    });
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.11/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+
+    Fluid.events.registerRefreshCallback(function() {
+      if ('anchors' in window) {
+        anchors.removeAll();
+        var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+        var res = [];
+        for (var item of el) {
+          res.push('.markdown-body > ' + item.trim());
+        }
+        if (CONFIG.anchorjs.placement === 'left') {
+          anchors.options.class = 'anchorjs-link-left';
+        }
+        anchors.add(res.join(', '));
+      }
+    });
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
